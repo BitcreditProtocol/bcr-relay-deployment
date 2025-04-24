@@ -1,0 +1,19 @@
+# This is just for local testing the run configuration
+services:
+  relay:
+    build: .
+    ports:
+      # map the host port
+      - "8080:8080"
+    environment:
+      DB_CONNECTION_STRING: postgres://postgres:password@postgres:5432/nostr
+    depends_on:
+      - postgres
+  # Postgres database for persistent data
+  postgres:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nostr
+    expose:
+      - "5432"

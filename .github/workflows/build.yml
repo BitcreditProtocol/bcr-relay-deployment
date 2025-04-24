@@ -1,0 +1,55 @@
+name: Build and deploy bcr Nostr relay
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches:
+  #     - master
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_TAG: "europe-west1-docker.pkg.dev/cs-host-c9f0ca592f814d028135fa/bitcr-devs-repo/bcr-relay:latest"
+  PROJECT_ID: "cs-host-c9f0ca592f814d028135fa"
+  GAR_LOCATION: "europe-west1"
+  REPOSITORY: "bitcr-devs-repo"
+  IMAGE: "bcr-relay"
+  GCR_INSTANCE: "bitcr-cloud-run-05"
+
+jobs:
+  docker_build:
+    name: Build image
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.6.0
+
+      - name: Docker auth
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: docker build --tag ${{ env.IMAGE_TAG }} .
+
+      - name: Push image
+        run: docker push ${{ env.IMAGE_TAG }}
+
+      - name: Deploy to Cloud Run
+        run:
+          gcloud run deploy ${{ env.GCR_INSTANCE }} --image ${{ env.IMAGE_TAG }} --region ${{ env.GAR_LOCATION }} \
+          --add-cloudsql-instances ${{ secrets.INSTANCE_CONNECTION_NAME }} \
+          —-set-env-vars DB_CONNECTION_STRING=postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ secrets.INSTANCE_CONNECTION_NAME }}
