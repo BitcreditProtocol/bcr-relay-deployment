@@ -23,3 +23,8 @@ docker compose up
 # build or rebuild it
 docker compose build --no-cache
 ```
+
+## Deployment
+
+For deployment, use the `Build and deploy bcr Nostr relay` GitHub action, which will deploy the current `release` branch of the [bcr-relay](https://github.com/BitcreditProtocol/bcr-relay).
+
